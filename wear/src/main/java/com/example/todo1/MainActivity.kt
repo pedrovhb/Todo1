@@ -9,12 +9,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.material.SplitToggleChip
@@ -28,10 +25,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val todoListViewModel: TodoListViewModel = viewModel()
-            val name: String by todoListViewModel.name.observeAsState("default")
+            val viewModel: TodoListViewModel = viewModel()
+//            val todoList by viewModel.todoList.observeAsState(listOf())
+//            val todoList = viewModel.tdl
+
             Todo1Theme {
-                TodoListScreen(name = name)
+                TodoListScreen(
+                    todoList = viewModel.todoList,
+                    onTodoToggled = { viewModel.onTodoToggled(it) })
             }
         }
     }
@@ -42,36 +43,24 @@ data class Todo(var text: String, var checked: Boolean = false)
 
 class TodoListViewModel : ViewModel() {
 
-    private val initialTodoList = (1..8).map { n -> Todo("Do this $n") }.toMutableList()
-    private val _todoList = MutableLiveData(initialTodoList)
+    private val initialTodoList = (1..8).map { n -> Todo("Do this $n") }.toTypedArray()
+//    private val initialTodoList = (1..8).map { n -> Todo("Do this $n") }.toMutableList()
+//    private val _todoList = MutableLiveData(initialTodoList)
+//    val todoList: LiveData<List<Todo>> = _todoList
+
+    var todoList = mutableStateListOf(*initialTodoList)
 
 
-    val todoList: LiveData<MutableList<Todo>> = _todoList
-
-
-    // LiveData holds state which is observed by the UI
-    // (state flows down from ViewModel)
-//    private val _checked = MutableLiveData(false)
-//    val checked: LiveData<Boolean> = _checked
-//
-//    // onNameChange is an event we're defining that the UI can invoke
-//    // (events flow up from UI)
-//    fun onToggleChecked(newChecked: Boolean) {
-//        _checked.value = newChecked
-//    }
-
-
-    // LiveData holds state which is observed by the UI
-    // (state flows down from ViewModel)
-    private val _name = MutableLiveData("")
-    val name: LiveData<String> = _name
-
-    // onNameChange is an event we're defining that the UI can invoke
-    // (events flow up from UI)
-    fun onNameChange(newName: String) {
-        _name.value = newName
+    fun onTodoToggled(todo: Todo) {
+        println("Toggling $todo")
+        todo.checked = !todo.checked
+        val idx = todoList.indexOf(todo)
+        todoList[idx] = todo  // trigger list update
     }
 
+    fun removeTodo(toRemove: Todo) {
+        println("Removing $toRemove")
+    }
 
 
 //    private val users: MutableLiveData<List<User>> by lazy {
@@ -91,37 +80,33 @@ class TodoListViewModel : ViewModel() {
 }
 
 @Composable
-fun TodoListScreen(name: String) {
-
-//    val name: String by todoListViewModel.name.observeAsState("")
-
+fun TodoListScreen(todoList: List<Todo>, onTodoToggled: (Todo) -> Unit) {
     Surface {
-        Text(name)
-        TodoList(myTodoList)
+        TodoList(todoList, onTodoToggled)
     }
 }
 
 @Composable
-fun TodoList(todoList: List<Todo>) {
+fun TodoList(todoList: List<Todo>, onTodoToggled: (Todo) -> Unit) {
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(4.dp),
 
         ) {
         items(todoList) { todo ->
-            TodoListItem(todo)
+            TodoListItem(todo, onTodoToggled)
         }
     }
 }
 
 @Composable
-fun TodoListItem(todo: Todo) {
+fun TodoListItem(todo: Todo, onTodoToggled: (Todo) -> Unit) {
     SplitToggleChip(
         checked = todo.checked,
         label = { Text(todo.text) },
         secondaryLabel = { Text(todo.text) },
-        onCheckedChange = {},
-        onClick = {},
+        onCheckedChange = { onTodoToggled(todo) },
+        onClick = {  },
     )
 }
 
@@ -149,6 +134,6 @@ val myTodoList = listOf<Todo>(
 @Composable
 fun DefaultPreview() {
     Todo1Theme {
-        TodoListScreen("Some name")
+        TodoListScreen(myTodoList) { }
     }
 }
