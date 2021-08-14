@@ -6,11 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material.Surface
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,16 +23,16 @@ import androidx.navigation.compose.rememberNavController
 import androidx.wear.compose.foundation.ArcPaddingValues
 import androidx.wear.compose.foundation.BasicCurvedText
 import androidx.wear.compose.foundation.CurvedRow
-import androidx.wear.compose.material.Button
-import androidx.wear.compose.material.ListHeader
-import androidx.wear.compose.material.SplitToggleChip
-import androidx.wear.compose.material.Text
+import androidx.wear.compose.material.*
 import com.example.todo1.theme.Todo1Theme
+import kotlinx.coroutines.delay
+import java.time.LocalTime
 
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        println(this.getSystemService(VIBRATOR_SERVICE))
         setContent {
             MyApp()
         }
@@ -65,68 +63,99 @@ fun MyApp() {
                 TodoListScreen(
                     switchList = { goToReversedTodoList() },
                     todoList = viewModel.todoList,
-                    onTodoToggled = { viewModel.onTodoToggled(it) })
+                    onTodoToggled = { viewModel.toggleTodo(it) },
+                    onClearAllClicked = { viewModel.clearAll() },
+                )
             }
-            composable("reversedTodoList") {
-                ReversedTodoListScreen(
-                    switchList = { goToTodoList() },
-                    todoList = viewModel.todoList,
-                    onTodoToggled = { viewModel.onTodoToggled(it) })
-            }
+//            composable("reversedTodoList") {
+//                ReversedTodoListScreen(
+//                    switchList = { goToTodoList() },
+//                    todoList = viewModel.todoList,
+//                    onTodoToggled = { viewModel.onTodoToggled(it) })
+//            }
         }
     }
 
 }
 
+
+fun getCurrentTimeFormatted(): String {
+    val currentTime = LocalTime.now()
+    return String.format("%1\$tI:%1\$tM", currentTime)
+}
+
+@Composable
+fun currentTime(): String {
+    var currentTime: String by remember { mutableStateOf(getCurrentTimeFormatted()) }
+    LaunchedEffect(key1 = currentTime) {
+        delay(1000)
+        currentTime = getCurrentTimeFormatted()
+    }
+    return currentTime
+}
 
 @Composable
 fun TodoListScreen(
     switchList: () -> Unit,
     todoList: List<Todo>,
-    onTodoToggled: (Todo) -> Unit
+    onTodoToggled: (Todo) -> Unit,
+    onClearAllClicked: () -> Unit,
 ) {
     Surface {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Button(onClick = switchList) {
-                Text("Ya!")
-            }
-            TodoList(todoList = todoList, onTodoToggled = onTodoToggled)
-        }
-    }
-}
-
-@Composable
-fun ReversedTodoListScreen(
-    switchList: () -> Unit,
-    todoList: List<Todo>,
-    onTodoToggled: (Todo) -> Unit
-) {
-    Surface {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Button(onClick = switchList) {
-                Text("Yo!")
-            }
+            Text(currentTime(), Modifier.padding(4.dp))
+//            Button(onClick = switchList) {
+//                Text(text = "Switch order")
+//            }
             TodoList(
-                todoList = todoList.reversed(),
-                onTodoToggled = onTodoToggled
+                todoList = todoList,
+                onTodoToggled = onTodoToggled,
+                onClearAllClicked = onClearAllClicked
             )
         }
     }
 }
 
-@Composable
-fun TodoList(todoList: List<Todo>, onTodoToggled: (Todo) -> Unit) {
+//@Composable
+//fun ReversedTodoListScreen(
+//    switchList: () -> Unit,
+//    todoList: List<Todo>,
+//    onTodoToggled: (Todo) -> Unit
+//) {
+//    Surface {
+//        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+//            Button(onClick = switchList) {
+//                Text("Yo!")
+//            }
+//            TodoList(
+//                todoList = todoList.reversed(),
+//                onTodoToggled = onTodoToggled
+//            )
+//        }
+//    }
+//}
 
-    LazyColumn(
+@Composable
+fun TodoList(todoList: List<Todo>, onTodoToggled: (Todo) -> Unit, onClearAllClicked: () -> Unit) {
+
+    val scalingLazyColumnState = rememberScalingLazyColumnState()
+    ScalingLazyColumn(
         verticalArrangement = Arrangement.spacedBy(4.dp),
+        state = scalingLazyColumnState
     ) {
 
-        item { Spacer(modifier = Modifier.size(20.dp)) }
-        item { ListHeader { Text("Header1") } }
-
-        items(todoList) { todo ->
-            TodoListItem(todo, onTodoToggled)
+        item { Spacer(modifier = Modifier.size(10.dp)) }
+        item { ListHeader { Text("Rotina - Manhã") } }
+        items(todoList.size) { todoIndex ->
+            TodoListItem(todoList[todoIndex], onTodoToggled)
         }
+        item {
+//            Box(modifier = Modifier.fillMaxSize())
+            Button(onClick = onClearAllClicked, Modifier.fillMaxSize()) {
+                Text("Clear all")
+            }
+        }
+        item { Spacer(modifier = Modifier.size(15.dp)) }
     }
 }
 
@@ -136,19 +165,25 @@ fun TodoListItem(todo: Todo, onTodoToggled: (Todo) -> Unit) {
         SplitToggleChip(
             checked = todo.checked,
             label = { Text(todo.text) },
-            secondaryLabel = { Text(todo.text) },
+//            secondaryLabel = { Text(todo.text) },
             onCheckedChange = { onTodoToggled(todo) },
-            onClick = { },
+            onClick = {  },
         )
     }
 }
 
 
+//@Preview(showBackground = true, widthDp = 200, heightDp = 200)
 @Preview(showBackground = true, widthDp = 200, heightDp = 200)
 @Composable
 fun DefaultPreview() {
     Todo1Theme {
-        TodoListScreen({}, myTodoList) { }
+        TodoListScreen(
+            switchList = {},
+            todoList = myTodoList,
+            onTodoToggled = { },
+            onClearAllClicked = {  },
+        )
     }
 }
 

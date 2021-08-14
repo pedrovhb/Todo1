@@ -11,11 +11,23 @@ class TodoListViewModel : ViewModel() {
     var todoList = mutableStateListOf(*initialTodoList)
 
 
-    fun onTodoToggled(todo: Todo) {
+    fun toggleTodo(todo: Todo) {
         println("Toggling $todo")
         todo.checked = !todo.checked
-        val idx = todoList.indexOf(todo)
-        todoList[idx] = todo  // trigger list update
+        todoList[0] = todoList[0]
+//        todoList.let {
+//            val idx = it.indexOf(todo)
+//            it.set(idx, todo)
+//        }
+//        val idx = todoList.indexOf(todo)
+//        todoList[idx] = todo
+//        todoList[idx] = todo  // trigger list update
+//        todoList
+    }
+
+    fun clearAll() {
+        println("Clearing all")
+        todoList.replaceAll { it.apply { this.checked = false } }
     }
 
     fun removeTodo(toRemove: Todo) {
@@ -40,8 +52,6 @@ class TodoListViewModel : ViewModel() {
 }
 
 val myTodoList = listOf(
-    Todo("Espaço"),
-    Todo("Espaço"),
     Todo("Café - Ferver água"),
     Todo("Comer"),
     Todo("Remédio"),
@@ -49,10 +59,6 @@ val myTodoList = listOf(
     Todo("Escovar os dentes"),
     Todo("Pegar toalha"),
     Todo("Separar roupas"),
-    Todo("Sabonete rosto"),
-    Todo("Óleo"),
-    Todo("Vestir"),
+    Todo("Banho"),
     Todo("Estender toalha"),
-    Todo("Espaço"),
-    Todo("Espaço"),
 )
